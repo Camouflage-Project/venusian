@@ -194,6 +194,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"flag"
+	"github.com/google/martian/v3/singleproxy"
 	"log"
 	"net"
 	"net/http"
@@ -376,6 +377,9 @@ func main() {
 
 	stack.AddRequestModifier(logger)
 	stack.AddResponseModifier(logger)
+
+	t := &singleproxy.Modifier{}
+	stack.AddRequestModifier(t)
 
 	if *marblLogging {
 		lsh := marbl.NewHandler()

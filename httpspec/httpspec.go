@@ -31,7 +31,7 @@ func NewStack(via string) (outer *fifo.Group, inner *fifo.Group) {
 
 	hbhm := header.NewHopByHopModifier()
 	outer.AddRequestModifier(hbhm)
-	outer.AddRequestModifier(header.NewForwardedModifier())
+	//outer.AddRequestModifier(header.NewForwardedModifier())
 	outer.AddRequestModifier(header.NewBadFramingModifier())
 
 	vm := header.NewViaModifier(via)

@@ -75,6 +75,16 @@ func Warning(header http.Header, err error) {
 	header.Add("Warning", w)
 }
 
+func Error(header http.Header, err error) {
+	date := header.Get("Date")
+	if date == "" {
+		date = time.Now().Format(http.TimeFormat)
+	}
+
+	w := fmt.Sprintf(`%q %q`, err.Error(), date)
+	header.Add("Error", w)
+}
+
 // GetRangeStart returns the byte index of the start of the range, if it has one.
 // Returns 0 if the range header is absent, and -1 if the range header is invalid or
 // has multi-part ranges.

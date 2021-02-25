@@ -19,6 +19,8 @@ import (
 	"bytes"
 	"crypto/tls"
 	"errors"
+	"fmt"
+	"github.com/google/martian/v3/singleproxy"
 	"io"
 	"net"
 	"net/http"
@@ -486,13 +488,15 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 		return nil
 	}
 
-	// perform the HTTP roundtrip
-	res, err := p.roundTrip(ctx, req)
-	if err != nil {
-		log.Errorf("martian: failed to round trip: %v", err)
-		res = proxyutil.NewResponse(502, nil, req)
-		proxyutil.Warning(res.Header, err)
+	var res *http.Response
+	apiKeyArray, ok := req.Header["Singleproxy-Api-Key"]
+
+	if !ok {
+		res = apiKeyNotPresent(req)
+	}else {
+		res = p.handleWithApiKey(apiKeyArray[0], ctx, req)
 	}
+
 	defer res.Body.Close()
 
 	// set request to original request manually, res.Request may be changed in transport.
@@ -569,6 +573,41 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 		}
 	}
 	return closing
+}
+
+func apiKeyNotPresent(req *http.Request) *http.Response {
+	msg := "Singleproxy-Api-Key header not present in request"
+	log.Errorf(msg)
+	res := proxyutil.NewResponse(400, nil, req)
+	proxyutil.Error(res.Header, fmt.Errorf(msg))
+	return res
+}
+
+func (p *Proxy) handleWithApiKey(apiKey string, ctx *Context, req *http.Request) *http.Response  {
+	d, err := singleproxy.FetchProxy(apiKey)
+
+	if err != nil {
+		log.Errorf(err.Error())
+		res := proxyutil.NewResponse(500, nil, req)
+		proxyutil.Error(res.Header, err)
+		return res
+	}
+
+	sprint := fmt.Sprint("http://", d.Host, ":", d.Port)
+	fmt.Println("sending via proxy at: " + sprint)
+	downStreamProxy, _ := url.Parse(sprint)
+	p.SetDownstreamProxy(downStreamProxy)
+	res, err := p.roundTrip(ctx, req)
+
+	if err != nil {
+		log.Errorf("martian: failed to round trip: %v", err)
+		res = proxyutil.NewResponse(502, nil, req)
+		proxyutil.Warning(res.Header, err)
+	}else {
+		res.Header.Add("Singleproxy-ip-id", d.IpId)
+	}
+
+	return res
 }
 
 // A peekedConn subverts the net.Conn.Read implementation, primarily so that
