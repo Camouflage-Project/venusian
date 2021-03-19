@@ -27,6 +27,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -583,6 +584,12 @@ func apiKeyNotPresent(req *http.Request) *http.Response {
 	return res
 }
 
+func handlePossibleBadGateway(err error, ipId string) {
+	if strings.HasPrefix(err.Error(), "proxyconnect tcp: dial tcp") {
+		singleproxy.ReportMalfunctioningProxy(ipId)
+	}
+}
+
 func (p *Proxy) handleWithApiKey(apiKey string, ctx *Context, req *http.Request) *http.Response  {
 	d, err := singleproxy.FetchProxy(apiKey)
 
@@ -600,9 +607,11 @@ func (p *Proxy) handleWithApiKey(apiKey string, ctx *Context, req *http.Request)
 	res, err := p.roundTrip(ctx, req)
 
 	if err != nil {
+		handlePossibleBadGateway(err, d.IpId)
 		log.Errorf("martian: failed to round trip: %v", err)
 		res = proxyutil.NewResponse(502, nil, req)
 		proxyutil.Warning(res.Header, err)
+		fmt.Println(err)
 	}else {
 		res.Header.Add("Singleproxy-ip-id", d.IpId)
 	}

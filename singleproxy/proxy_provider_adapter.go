@@ -3,12 +3,15 @@ package singleproxy
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"github.com/google/martian/v3/log"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
-var proxyProviderUrl = "https://alealogic.com:8082/api/proxy"
+//var baseProxyProviderUrl = "https://alealogic.com:8082/api/"
+var baseProxyProviderUrl = "http://localhost:8082/api/"
 
 type ProxyDescriptor struct {
 	Host string      `json:"host"`
@@ -21,7 +24,7 @@ func FetchProxy(apiKey string) (ProxyDescriptor, error) {
 	jsonValue, _ := json.Marshal(values)
 
 	resp, err := http.Post(
-		proxyProviderUrl,
+		baseProxyProviderUrl + "proxy",
 		"application/json",
 		bytes.NewBuffer(jsonValue),
 		)
@@ -29,7 +32,10 @@ func FetchProxy(apiKey string) (ProxyDescriptor, error) {
 	if err != nil {
 		log.Errorf(err.Error())
 		return ProxyDescriptor{}, err
-	}else {
+	}else if resp.StatusCode == 401 {
+		log.Errorf(strconv.Itoa(resp.StatusCode))
+		return ProxyDescriptor{}, errors.New("API key unauthorized")
+	} else {
 		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
@@ -46,5 +52,20 @@ func FetchProxy(apiKey string) (ProxyDescriptor, error) {
 		}
 
 		return data, nil
+	}
+}
+
+func ReportMalfunctioningProxy(ipId string) {
+	values := map[string]string{"ipId": ipId}
+	jsonValue, _ := json.Marshal(values)
+
+	_, err := http.Post(
+		baseProxyProviderUrl + "failed-proxy",
+		"application/json",
+		bytes.NewBuffer(jsonValue),
+	)
+
+	if err != nil {
+		log.Errorf(err.Error())
 	}
 }
