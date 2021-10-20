@@ -11,7 +11,7 @@ import (
 )
 
 //var baseProxyProviderUrl = "https://alealogic.com:8082/api/"
-var baseProxyProviderUrl = "http://localhost:8082/api/"
+var baseProxyProviderUrl = "http://localhost:8080"
 
 type ProxyDescriptor struct {
 	Host string      `json:"host"`
@@ -24,7 +24,7 @@ func FetchProxy(apiKey string) (ProxyDescriptor, error) {
 	jsonValue, _ := json.Marshal(values)
 
 	resp, err := http.Post(
-		baseProxyProviderUrl + "proxy",
+		baseProxyProviderUrl + "/proxy",
 		"application/json",
 		bytes.NewBuffer(jsonValue),
 		)
