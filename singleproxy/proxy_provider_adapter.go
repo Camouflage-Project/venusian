@@ -21,7 +21,7 @@ type ProxyDescriptor struct {
 }
 
 func FetchProxy(apiKey string) (ProxyDescriptor, error) {
-	req, err := http.NewRequest("GET", baseProxyProviderUrl + "/proxy-port", nil)
+	req, err := http.NewRequest("GET", baseProxyProviderUrl + "/proxy-descriptor", nil)
 	req.Header.Add("key", apiKey)
 
 	resp, err := client.Do(req)
