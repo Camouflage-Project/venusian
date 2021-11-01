@@ -11,7 +11,7 @@ import (
 )
 
 //var baseProxyProviderUrl = "https://alealogic.com:8082/api/"
-var baseProxyProviderUrl = "http://localhost:443"
+var baseProxyProviderUrl = "https://alealogic.com"
 var client = &http.Client{}
 
 type ProxyDescriptor struct {
